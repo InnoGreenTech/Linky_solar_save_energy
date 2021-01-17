@@ -4,15 +4,16 @@ void heating_water(){
 
   if(tomorow_color=="rouge"){
     if (today_color=="blanc" || today_color=="bleu"){temperature_setting=65;}
-    else {temperature_setting=55;}
+    else {temperature_setting=50;}
     }
   else if(tomorow_color=="blanc"){
     if (today_color=="bleu"){temperature_setting=65;}
-    else {temperature_setting=55;}
+    else {temperature_setting=50;}
     }
   else {
-       if (today_color=="blanc" || today_color=="rouge"){temperature_setting=55;}
-       else {temperature_setting=60;}  
+       if (today_color=="blanc" || today_color=="rouge"){temperature_setting=50;}
+       else if (weekday()==1){temperature_setting=65;}  
+       else {temperature_setting=55;}
        }
 
   /* control temperature */
@@ -21,7 +22,7 @@ void heating_water(){
   else if (forced and temperature_water<60){heating_PID.stop(); end_signal=PERIOD;}
   else if (!digitalRead(ENABLE_HEATING)){   
 
-    if (hour_statut=="Creuse"){ 
+    if (hour_statut=="Creuse" and hour()>2 and hour()<8){ 
           out_injection=0;             
           heating_PID.run(); //call every loop, updates automatically at certain time interval
           end_signal=int(out_heating);   
