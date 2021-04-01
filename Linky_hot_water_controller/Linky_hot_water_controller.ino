@@ -205,7 +205,7 @@ AutoPID heating_PID(&temperature_water, &temperature_setting, &out_heating, OUTP
 /* solar energy conpensation */
 
 #define SET_MIN_POWER 50
-#define STEP_INJECTION PERIOD/100;
+#define STEP_INJECTION PERIOD/100
 
 unsigned int     out_injection;
 int              p_setting=SET_MIN_POWER;
