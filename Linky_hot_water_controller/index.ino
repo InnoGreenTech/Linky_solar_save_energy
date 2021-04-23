@@ -1,10 +1,19 @@
 
 void indexRoot(){
 
+             String  get_information="";
+
               timer1_attachInterrupt(pwm_timer);
               timer1_write(625/2*SHARPNESS);
               timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
-  
+
+              if(server.hasArg("POWER_HEATING")){
+                get_information = server.arg("POWER_HEATING");
+                power_heating=get_information.toInt();               
+                int b=int(power_heating);
+                for (int a=0;a<2;a++){EEPROM.write(MEM_POWER_HEATING+a ,b);b=b>>8;} 
+                EEPROM.commit();
+              }
               
               
               if ( server.hasArg("envoi")) 
@@ -83,6 +92,11 @@ String indexPage(){
                            page +=F("<section id='sent'><h2> Envoi des données  </h2><table><tr><td>Périodicité actuelle ");
                            page +=period;
                            page +=F(" secondes</td><td></td><td><form method='get'><input type='hidden' name='envoi' value='1'/><input type='submit' value='envoi'/>");                      
+                           page +=F("</form></td></tr></table>");
+                           page +=F("<table><tr><td>Puissance en watts du chauffe eau: ");
+                           page +=F("</td><td></td><td><form method='get'><input type='num' name='POWER_HEATING' id='POWER_HEATING'  value='");
+                           page +=power_heating;
+                           page +=F("'/><input type='submit' value='Modifier'/>");                      
                            page +=F("</form></td></tr></table></section>");
                                  
                            page +=F("</div>");

@@ -45,6 +45,7 @@
 #define MEM_PERIOD          50  // Period to send datas in seconds
 #define MEM_SSID            70
 #define MEM_PASSWORD        170 
+#define MEM_POWER_HEATING   220
     
 /* Configuration de l'écran */
 
@@ -81,6 +82,7 @@ int           end_signal;
 int           heat_water;      
 byte          out;     
 byte          forced=0;
+long          power_heating=3000;  // Ths is the power of the heat ballon
 
 /* Pin setting */
 
@@ -186,7 +188,7 @@ const char* update_password = "innogreentech";
     
 ESP8266HTTPUpdateServer httpUpdater;
 
-/* PID to control temperature */
+/* PID to control temperature 
 
 #include <AutoPID.h>
 
@@ -200,15 +202,16 @@ double  out_heating;
 
 unsigned int total_heat;
 
-AutoPID heating_PID(&temperature_water, &temperature_setting, &out_heating, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
+AutoPID heating_PID(&temperature_water, &temperature_setting, &out_heating, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);*/
 
 /* solar energy conpensation */
 
 #define SET_MIN_POWER 50
 #define STEP_INJECTION PERIOD/100
 
-unsigned int     out_injection;
-int              p_setting=SET_MIN_POWER;
+long         power_recover;
+int          p_setting=SET_MIN_POWER;
+unsigned int total_heat;
 
 
 
@@ -259,6 +262,11 @@ void setup() {
   for (int a=0;a<3;a++){mem[a]= EEPROM.read(MEM_PERIOD+a);}          // load the time period
   period= mem[0]|mem[1]<<8;
   delay_sent=period*1000;
+
+  for (int a=0;a<3;a++){mem[a]= EEPROM.read(MEM_POWER_HEATING+a);}     // load the port server  $$
+  int b =   mem[0]|mem[1]<<8;     
+  power_heating= b;
+  if (power_heating > 30000){power_heating=3000;}
 
   carac='1';                
   a=0;
@@ -379,7 +387,7 @@ void setup() {
   display.println(local_ip);
   display.display();
   
-  /* PID control */
+  /* PID control 
 
   heating_PID.setTimeStep(1000);
 
@@ -406,7 +414,7 @@ void loop() {
   sensor.requestTemperatures();
   temperature_water=sensor.getTempC(water_thermometer);
   if (!sensor.isConnected(water_thermometer)){alarm=1;}
-  else if (temperature_water>65){alarm=2;}
+  else if (temperature_water>71){alarm=2;}
   else {alarm=0;}
   
 

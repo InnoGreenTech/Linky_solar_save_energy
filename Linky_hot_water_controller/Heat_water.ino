@@ -18,35 +18,28 @@ void heating_water(){
 
   /* control temperature */
   
-  if (temperature_water>70 || alarm>0){heating_PID.stop(); end_signal=0;}
-  else if (forced and temperature_water<60){heating_PID.stop(); end_signal=PERIOD;}
+  if (temperature_water>67 || alarm>0){end_signal=0;}
+  else if (forced and temperature_water<65){end_signal=PERIOD;}
   else if (!digitalRead(ENABLE_HEATING)){   
 
     if (hour_statut=="Creuse" and hour()>2 and hour()<8){ 
-          out_injection=0;             
-          heating_PID.run(); //call every loop, updates automatically at certain time interval
-          end_signal=int(out_heating);   
+          if (temperature_water < temperature_setting) {end_signal=PERIOD;}
+          else {end_signal=0;}
         }
   
     else {
-        heating_PID.stop();
+ 
         if(read_done==1){
-          if (p_app<p_setting){out_injection=out_injection+STEP_INJECTION;}
-          else if (p_app>p_setting){if (out_injection>0){out_injection=out_injection-STEP_INJECTION;}else{out_injection=0;}}
-          else if (p_app>2*p_setting){if (out_injection>2*STEP_INJECTION){out_injection=out_injection-2*STEP_INJECTION;}else{out_injection=0;}}
-          else if (p_app>3*p_setting){if (out_injection>4*STEP_INJECTION){out_injection=out_injection-4*STEP_INJECTION;}else{out_injection=0;}}
-          else if (p_app>4*p_setting){if (out_injection>8*STEP_INJECTION){out_injection=out_injection-8*STEP_INJECTION;}else{out_injection=0;}}
-          else if (p_app>5*p_setting){if (out_injection>16*STEP_INJECTION){out_injection=out_injection-16*STEP_INJECTION;}else{out_injection=0;}}
-          else if (p_app>6*p_setting){if (out_injection>32*STEP_INJECTION){out_injection=out_injection-32*STEP_INJECTION;}else{out_injection=0;}}
-          else if (p_app>7*p_setting){if (out_injection>64*STEP_INJECTION){out_injection=out_injection-64*STEP_INJECTION;}else{out_injection=0;}}
-          else  {out_injection=0;}
-          
+          if (p_app == 0 ){power_recover = power_recover +((i_inst*23000)/power_heating); }
+          else {power_recover = power_recover -( (i_inst*23000)/power_heating);}
+          if (power_recover>100){power_recover=100;};
+          if (power_recover<0){power_recover=0;}
           read_done=0;
         }
-        end_signal= out_injection;        
+        end_signal=int((power_recover*PERIOD)/100);       
       }
   }
-  else {heating_PID.stop();end_signal=0;}
+  else {end_signal=0;}
 
   /* power off security */
 
