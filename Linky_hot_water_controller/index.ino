@@ -12,7 +12,10 @@ void indexRoot(){
                 power_heating=get_information.toInt();               
                 int b=int(power_heating);
                 for (int a=0;a<2;a++){EEPROM.write(MEM_POWER_HEATING+a ,b);b=b>>8;} 
+                timer1_disable();
                 EEPROM.commit();
+                delay (500);
+                ESP.restart();
               }
               
               
@@ -57,26 +60,15 @@ String indexPage(){
                            page +=(end_signal*100)/PERIOD;
                            page +=F(" %</td></tr><tr><td>Température:</td><td></td><td>");
                            page +=temperature_water;
-                           page +=F(" °C</td></tr><tr><td>Aujourd'hui:</td><td></td><td class='");    
-                           page +=today_color;
-                           page +=F("'></td></tr><tr><td>Demain:</td><td></td><td class='");
-                           page +=tomorow_color;
-                           page +=F("'></td></tr><tr><td>Période:</td><td></td><td>");
-                           page +=hour_statut;
+                           page +=F(" °C</td></tr><tr><td>Autonomie restante:</td><td></td><td>");
+                           page +=(autonomie-(millis()-last_autonomie_reach))/3600000;
+                           page +=F(" Heures</td></tr><tr><td>Prochaine décontamination:</td><td></td><td>");
+                           page +=(PERIOD_LEGIONEL-(millis()- last_legionel_reach))/(3600000*24);
+                           page +=F(" Jours");
                            page +=F("</td></tr></table></section>"); 
                                                                  
-                           page +=F("<section id='Consommation'><h2> Consommation </h2><table><tr><td>Bleu heures pleines :</td><td></td><td>");
-                           page +=hpjb;
-                           page +=F(" Wh</td></tr><tr><td>Bleu heures creuses</td><td></td><td>");
-                           page +=hcjb;
-                           page +=F(" Wh</td></tr><tr><td>Blanc heures pleines:</td><td></td><td>");
-                           page +=hpjw;
-                           page +=F(" Wh</td></tr><tr><td>Blanc heures creuses:</td><td></td><td>");
-                           page +=hcjw;
-                           page +=F(" Wh</td></tr><tr><td>Rouge heures pleines:</td><td></td><td>");
-                           page +=hpjr;
-                           page +=F(" Wh</td></tr><tr><td>Rouge heures creuses:</td><td></td><td>");
-                           page +=hcjr; 
+                           page +=F("<section id='Consommation'><h2> Consommation </h2><table><tr><td>Consommation :</td><td></td><td>");
+                           page +=base;
                            page +=F(" Wh</td></tr><tr><td>Consommation totale:</td><td></td><td>");
                            page +=kwh;                          
                            page +=F(" KWh</td></tr><tr><td>Statut du compteur:</td><td></td><td>");
@@ -91,9 +83,9 @@ String indexPage(){
 
                            page +=F("<section id='sent'><h2> Envoi des données  </h2><table><tr><td>Périodicité actuelle ");
                            page +=period;
-                           page +=F(" secondes</td><td></td><td><form method='get'><input type='hidden' name='envoi' value='1'/><input type='submit' value='envoi'/>");                      
+                           page +=F(" secondes</td><td></td><td><form method='get'><input type='hidden' name='envoi' value='1'/><input type='submit' value='Envoi données'/>");                      
                            page +=F("</form></td></tr></table>");
-                           page +=F("<table><tr><td>Puissance en watts du chauffe eau: ");
+                           page +=F("<table><tr><td>Puissance en watts du chauffe eau (redémarrage): ");
                            page +=F("</td><td></td><td><form method='get'><input type='num' name='POWER_HEATING' id='POWER_HEATING'  value='");
                            page +=power_heating;
                            page +=F("'/><input type='submit' value='Modifier'/>");                      

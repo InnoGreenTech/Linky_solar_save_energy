@@ -51,34 +51,15 @@ void read_linky(void){
 
 void check_message(){
        
-           if (etiquette=="BBRHCJB"){hcjb=strtoul(donnee.c_str(),NULL,10);}      
-           else if(etiquette=="BBRHPJB"){hpjb=strtoul(donnee.c_str(),NULL,10);}
-           else if(etiquette=="BBRHCJW"){hcjw=strtoul(donnee.c_str(),NULL,10);}            
-           else if(etiquette=="BBRHPJW"){hpjw=strtoul(donnee.c_str(),NULL,10);}            
-           else if(etiquette=="BBRHCJR"){hcjr=strtoul(donnee.c_str(),NULL,10);}           
-           else if(etiquette=="BBRHPJR"){hpjr=strtoul(donnee.c_str(),NULL,10); kwh=(hcjb+hpjb+hcjw+hpjw+hcjr+hpjr)/1000;}                        
-           else if(etiquette=="PTEC"){ptec=donnee;
-                                        if(ptec[3]=='B'){today_color="bleu";}
-                                        else if(ptec[3]=='W'){today_color="blanc";}
-                                        else if(ptec[3]=='R'){today_color="rouge";}
-                                        else {today_color="inconnu";}
-                                        if(ptec[1]=='C'){hour_statut="Creuse";}
-                                        else{hour_statut="Pleine";}
-                                        
-                                       }                                      
-           else if(etiquette=="DEMAIN"){demain=donnee;
-                                        if(demain=="BLEU"){tomorow_color="bleu";}
-                                        else if(demain=="BLAN"){tomorow_color="blanc";}
-                                        else if(demain=="ROUG"){tomorow_color="rouge";}
-                                        //else {tomorow_color="inconnu";}
-                                        
-                                       }
-           else if(etiquette=="IINST"){i_inst=donnee.toInt();total_i=total_i+i_inst;index_i++;} 
-           else if(etiquette=="PAPP"){p_app=donnee.toInt(); total_app=total_app+p_app; index_app++; read_done=1;total_injection=total_injection+power_recover;total_heat=total_heat+((end_signal*100)/PERIOD);}
+           if (etiquette=="BASE"){base=strtoul(donnee.c_str(),NULL,10);kwh=base/1000;}      
+                   
+           else if(etiquette=="PTEC"){ptec=donnee;}
+   
+           else if(etiquette=="IINST"){i_inst=donnee.toInt();total_i=total_i+i_inst;index_i++; read_done=1;} 
+           else if(etiquette=="PAPP"){p_app=donnee.toInt(); total_app=total_app+p_app; index_app++; total_injection=total_injection+power_recover;total_heat=total_heat+((end_signal*100)/PERIOD);}
            else if(etiquette=="HHPHC"){h_hp_hc=donnee;}
            else if(etiquette=="MOTDETAT"){for (int i=0; i<6; i++){mode_linky[i]=donnee[i];}}
            else if(etiquette=="ISOUSC"){i_sousc=donnee.toInt();}
-           else if(etiquette=="BASE"){base=donnee.toInt();}
            else if(etiquette=="ADC0"){for (int i=0; i<12; i++){adresse[i]=donnee[12];}}
            else if(etiquette=="OPTARIF"){op_tarif=donnee.toInt();}
            else{} 

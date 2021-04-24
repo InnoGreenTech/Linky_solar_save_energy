@@ -61,15 +61,10 @@ String answer_add_module(){
          
          page +=F("probe;p1;i_inst;LINKY_I\r\n");    
          page +=F("probe;p2;p_app;LINKY_APP\r\n"); 
-         page +=F("probe;p3;hcjb;LINKY_WH\r\n");     
-         page +=F("probe;p4;hpjb;LINKY_WH\r\n");
-         page +=F("probe;p5;hcjw;LINKY_WH\r\n");
-         page +=F("probe;p6;hpjw;LINKY_WH\r\n");
-         page +=F("probe;p7;hcjr;LINKY_WH\r\n");
-         page +=F("probe;p8;hpjr;LINKY_WH\r\n");
-         page +=F("probe;p9;petc;LINKY_PETC\r\n");
-         page +=F("probe;p10;temperature_water;DS18b20\r\n");
-         page +=F("probe;p11;kwh;LINKY_KWH\r\n");
+         page +=F("probe;p3;base;LINKY_WH\r\n");     
+         page +=F("probe;p4;petc;LINKY_PETC\r\n");
+         page +=F("probe;p5;temperature_water;DS18b20\r\n");
+         page +=F("probe;p6;kwh;LINKY_KWH\r\n");
                                    
          page +=F("actuator;a1;heat_water;SSR\r\n");    
          page +=F("actuator;a2;solar_recover;SSR\r\n"); 

@@ -1,49 +1,50 @@
 void heating_water(){
 
-  /* set temperature folow color day */
+  /* initialise timer */
 
-  if(tomorow_color=="rouge"){
-    if (today_color=="blanc" || today_color=="bleu"){temperature_setting=65;}
-    else {temperature_setting=50;}
+  if (temperature_water>=MIN_TEMP_AUTONOMIE){                                                // Calcul the autonomie of the ballon
+    unsigned long  test_autonomie= (temperature_water/AUTONOMIE_FACTOR)*3600000;
+    if(autonomie>(millis()-last_autonomie_reach)){
+      if (test_autonomie>(autonomie-(millis()-last_autonomie_reach))){autonomie=test_autonomie; last_autonomie_reach= millis();}
     }
-  else if(tomorow_color=="blanc"){
-    if (today_color=="bleu"){temperature_setting=65;}
-    else {temperature_setting=50;}
-    }
-  else {
-       if (today_color=="blanc" || today_color=="rouge"){temperature_setting=50;}
-       else if (weekday()==2){temperature_setting=65;}  
-       else {temperature_setting=55;}
-       }
+    else{autonomie=test_autonomie; last_autonomie_reach= millis();}
+  }
+
+  if(temperature_water>=TEMP_LEGIONEL) {last_legionel_reach=millis();}                 // Control the last time when the protect legionnel was been reach
+       
 
   /* control temperature */
   
   if (temperature_water>67 || alarm>0){end_signal=0;}
-  else if (forced and temperature_water<65){end_signal=PERIOD;}
-  else if (!digitalRead(ENABLE_HEATING)){   
-
-    if (hour_statut=="Creuse" and hour()>2 and hour()<8){ 
-          if (temperature_water < temperature_setting) {end_signal=PERIOD;}
-          else {end_signal=0;}
-        }
-  
-    else {
- 
+  else if (forced and temperature_water <= 65){end_signal=PERIOD;}
+  else if (!digitalRead(ENABLE_HEATING)){ 
         if(read_done==1){
-          if (p_app == 0 ){power_recover = power_recover +((i_inst*23000)/power_heating); }
-          else {power_recover = power_recover -( (i_inst*23000)/power_heating);}
-          if (power_recover>100){power_recover=100;};
-          if (power_recover<0){power_recover=0;}
+          if(number_of_read>NUMBER_OF_READ){
+            number_of_read=0;
+            if (p_app == 0 ){power_recover = power_recover + STEP_RECOVER;}                          
+            else {power_recover = power_recover -(( p_app*100)/power_heating);number_of_read--;}          
+            if (power_recover>100){power_recover=100;};
+            if (power_recover<0){power_recover=0;}            
+          }
+          number_of_read++;
           read_done=0;
+          end_signal=int((power_recover*PERIOD)/100);  
         }
-        end_signal=int((power_recover*PERIOD)/100);       
+        
+        if ((millis()- last_legionel_reach)> PERIOD_LEGIONEL){
+          end_signal=PERIOD;
+        }
+
+        if ((millis()- last_autonomie_reach)> autonomie){
+          end_signal=PERIOD;
+        }
+
       }
-  }
   else {end_signal=0;}
 
   /* power off security */
 
   if (end_signal==0){digitalWrite(PWM_PIN,0);}
-  
+  if(end_signal>PERIOD){end_signal=PERIOD;}  
   
 }

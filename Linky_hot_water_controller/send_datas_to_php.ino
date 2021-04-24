@@ -12,7 +12,7 @@ void send_data(){
 
       
        
-      const size_t bufferSize =JSON_OBJECT_SIZE(18);
+      const size_t bufferSize =JSON_OBJECT_SIZE(13);
       DynamicJsonDocument root(bufferSize);
 
      root["mac_adress"]=WiFi.macAddress();
@@ -20,12 +20,7 @@ void send_data(){
 
      root["p1"]=(total_i/index_i);    
      root["p2"]=(total_app/index_app);
-     root["p3"]=hcjb;;    
-     root["p4"]=hpjb;
-     root["p5"]=hcjw;
-     root["p6"]=hpjw;
-     root["p7"]=hcjr;       
-     root["p8"]=hpjr;
+     root["p3"]=base;    
      root["p9"]=ptec;
      root["p10"]=temperature_water;
      root["p11"]=kwh;

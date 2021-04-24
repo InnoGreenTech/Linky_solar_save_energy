@@ -44,8 +44,8 @@
 #define MEM_PORT_SERVER     43  // Port of server
 #define MEM_PERIOD          50  // Period to send datas in seconds
 #define MEM_SSID            70
-#define MEM_PASSWORD        170 
-#define MEM_POWER_HEATING   220
+#define MEM_PASSWORD        120 
+#define MEM_POWER_HEATING   170
     
 /* Configuration de l'écran */
 
@@ -68,11 +68,11 @@ Adafruit_SSD1306 display(-1);
 int           time_screen_on;
 byte          screen_on;
 
-#define DELAY_SCREEN 10000        // x Sharpness, use pwm interupt
+#define DELAY_SCREEN 30000        // x Sharpness, use pwm interupt
 
 /* Pwm setting */
 
-#define PERIOD       1000   // ms    
+#define PERIOD       1020   // ms   
 #define SHARPNESS    1   // in ms
 #define PWM_PIN      12     //D6
 
@@ -123,7 +123,7 @@ String etiquette="";
 String donnee="";
 byte   checksum=0;
 
-/* EDF status */
+/* Enedis status */
 
 String            ptec;           // période tarifaire en cours
 String            demain;         //couleur du lendemain
@@ -135,20 +135,13 @@ int               index_app;
 unsigned int      total_app;
 unsigned int      kwh;            //kilowatts heures calculer
 String            h_hp_hc;        //Horaire heures pleines heures creuses
-unsigned long     hcjb;           //heure creuse jour bleu
-unsigned long     hpjb;           //heure pleine jour blanc
-unsigned long     hcjw;           //heure creuse jour blanc
-unsigned long     hpjw;           //heure pleine jour blanc
-unsigned long     hcjr;           //heure creuse jour rouge
-unsigned long     hpjr;           //heure pleine jour rouge
+unsigned long     base;           //consommation pour un tarif de base
     
 char              mode_linky[6];  //Etat du du compteur
 unsigned int      i_sousc;        //Intensité souscrite
-unsigned int      base;           //Index option
 char              adresse[12];    //Adresse du compteur
 unsigned int      op_tarif;
-String            today_color="inconnu";
-String            tomorow_color="inconnu";
+
 String            hour_statut="pleine";
 
 
@@ -188,35 +181,32 @@ const char* update_password = "innogreentech";
     
 ESP8266HTTPUpdateServer httpUpdater;
 
-/* PID to control temperature 
 
-#include <AutoPID.h>
-
-#define OUTPUT_MIN 0          
-#define OUTPUT_MAX PERIOD
-#define KP 5
-#define KI 1
-#define KD 1
-
-double  out_heating;
-
-unsigned int total_heat;
-
-AutoPID heating_PID(&temperature_water, &temperature_setting, &out_heating, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);*/
 
 /* solar energy conpensation */
 
-#define SET_MIN_POWER 50
-#define STEP_INJECTION PERIOD/100
+#define NUMBER_OF_READ    1                     // allow to improve stability
+unsigned long  number_of_read;
+
+#define STEP_RECOVER      5                  // Allow to increase  power recover in % 
 
 long         power_recover;
-int          p_setting=SET_MIN_POWER;
 unsigned int total_heat;
-
-
 
 byte            read_done=0;
 unsigned int    total_injection;
+
+/* Control if no suffisant sun   to heat water */
+
+const unsigned long PERIOD_LEGIONEL = 7*24*3600*1000;            //time between two rich ligionelose (7 days max)
+#define TEMP_LEGIONEL   65   
+
+unsigned long last_legionel_reach;               
+
+#define AUTONOMIE_FACTOR      2                       // Estimate autonomie number of hour = temp reach x AUTONOMIE_FACTOR
+#define MIN_TEMP_AUTONOMIE    55                      // This is the min temp to reach to start the counter
+unsigned long last_autonomie_reach;
+unsigned long autonomie;                      
 
 void setup() {
 
@@ -431,7 +421,7 @@ void loop() {
     display.print(temperature_water);display.println(" C");
     display.print(p_app);display.println(" VA");
     display.print(i_inst);display.println(" A");
-    display.println(today_color);
+   
     display.print("Forcee: ");display.println(forced);
     display.display();
   }
