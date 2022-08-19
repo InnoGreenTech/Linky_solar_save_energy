@@ -28,11 +28,12 @@
 #include <wchar.h> 
 #include <WString.h>
 #include <ESP8266WebServer.h>
-#include <DNSServer.h>
-#include <ESP8266Ping.h>
-#include <ESP8266HTTPClient.h>
+//#include <DNSServer.h>
+//#include <ESP8266Ping.h>
+//#include <ESP8266HTTPClient.h>
 #include <ESP8266HTTPUpdateServer.h> // Becarefull it is necessary to add this timer1_disable(); in ccp file
     
+#include <PubSubClient.h>
 #include <ArduinoJson.h>
 
 #include <stdlib.h>
@@ -60,6 +61,7 @@
 
 #define OLED_RESET   // GPIO0
 Adafruit_SSD1306 display(-1);
+// 64x48
 
 #if (SSD1306_LCDHEIGHT != 48)
 #error("Height incorrect, please fix Adafruit_SSD1306.h!");
@@ -67,14 +69,18 @@ Adafruit_SSD1306 display(-1);
 
 int           time_screen_on;
 byte          screen_on;
+byte          screen_change_state=1;
 
 #define DELAY_SCREEN 30000        // x Sharpness, use pwm interupt
 
 /* Pwm setting */
 
-#define PERIOD       1020   // ms   
-#define SHARPNESS    1   // in ms
+#define SHARPNESS    10   // in ms
+#define PERIOD       100  //    calcul sur une seconde
 #define PWM_PIN      12     //D6
+
+unsigned long delay_heat;
+unsigned long start_heat;
 
 int           i=0;
 int           start_period;
@@ -83,6 +89,7 @@ int           heat_water;
 byte          out;     
 byte          forced=0;
 long          power_heating=3000;  // Ths is the power of the heat ballon
+int           p_w=0;    // Power of heat
 
 /* Pin setting */
 
@@ -155,6 +162,7 @@ int             push_buttom_start;
 int             period;                   // period to sent datas at server
 unsigned long   delay_sent;               // delay to send a new message in milliseconds
 unsigned long   last_message;
+byte            send_datas;
 
 char            name_module[20];          // name of module
 String          ref_module;               // référence du module
@@ -193,6 +201,12 @@ unsigned long  number_of_read;
 long         power_recover;
 unsigned int total_heat;
 
+volatile int             p_dispo;                       //puissance disponnible
+volatile unsigned long   last_data_p_dispo;            // Durée de la derniére information valid
+volatile byte            new_data_p_dispo;
+
+#define DELAY_P_DISPO   300000                // Durée maxi entre deux messages de puissance disponnible
+
 byte            read_done=0;
 unsigned int    total_injection;
 
@@ -206,11 +220,38 @@ unsigned long last_legionel_reach;
 #define AUTONOMIE_FACTOR      2                       // Estimate autonomie number of hour = temp reach x AUTONOMIE_FACTOR
 #define MIN_TEMP_AUTONOMIE    55                      // This is the min temp to reach to start the counter
 unsigned long last_autonomie_reach;
-unsigned long autonomie;                      
+unsigned long autonomie;     
+
+
+/* setting mqtt server */
+
+    char mqtt_server[] = "domotic.local";
+    const int mqttPort = 1883; 
+    const char *topicR = "WATER_HEATER/READ";
+    const char *topicW= "WATER_HEATER/WRITE";
+    #define MQTT_USER "innogreentech"
+    #define MQTT_PASS "innogreentech"
+
+    
+    WiFiClient espEC;
+    PubSubClient EC(espEC);
+
+
+volatile void callback(const char *topic, byte *payload, unsigned int length){
+
+      //Serial.println("réception");
+
+        String recep= (char*)payload;
+
+         p_dispo = recep.toInt();
+         new_data_p_dispo = 1;
+         last_data_p_dispo= millis();
+      }
 
 void setup() {
 
-
+  system_update_cpu_freq(160);
+  WiFi.setPhyMode(WIFI_PHY_MODE_11G);
 
   /* setting Pin */
     
@@ -336,15 +377,29 @@ void setup() {
     delay(100);
     server.on ( "/", indexRoot );    // Renvoi à la page de index
     delay(100);
-    server.on ( "/setup", setup_page );    // Renvoi à la page de index
+    server.on ( "/setup", setup_page );    // Renvoi à la page de mise à jour du firmware
     delay(100);    
-    server.on ( "/add_module.csv", add_module );    // Page for add or modify  module by php server 
-    delay(100);
+   // server.on ( "/add_module.csv", add_module );    // Page for add or modify  module by php server 
+   // delay(100);
     server.on ("/style.css", cssRoot);     // envoi au fichier de configuration de style
     delay(100);
                
     httpUpdater.setup(&server, update_path, update_username, update_password);
 }
+
+  /*listen the server*/
+              
+  server.begin();
+
+  /* mqtt setup */
+
+  EC.setServer(mqtt_server,mqttPort);
+  EC.setBufferSize(255);
+  EC.setCallback(callback);
+    
+  mqtt_connection();     
+             
+  EC.publish(topicR, "Hello From HOTWATER!");
 
   
   
@@ -376,21 +431,19 @@ void setup() {
   
   display.println(local_ip);
   display.display();
+
+    delay(5000);
   
   /* PID control 
 
   heating_PID.setTimeStep(1000);
 
 
-  /*listen the server*/
-              
-  server.begin();
 
-  delay(5000);
   /* timer configuration */
 
   timer1_attachInterrupt(pwm_timer);
-  timer1_write(625/2*SHARPNESS);
+  timer1_write(625*SHARPNESS);                    // 625 = 1ms
   timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
 
   screen_on=0;
@@ -400,8 +453,10 @@ void setup() {
 void loop() {
 
   server.handleClient();
+  if(!EC.loop()){mqtt_connection();}  
 
   sensor.requestTemperatures();
+  
   temperature_water=sensor.getTempC(water_thermometer);
   if (!sensor.isConnected(water_thermometer)){alarm=1;}
   else if (temperature_water>71){alarm=2;}
@@ -409,10 +464,11 @@ void loop() {
   
 
   if (screen_on and time_screen_on>DELAY_SCREEN){
-    screen_on=0;    
+    screen_on=0; 
+    screen_change_state=1;   
   }
 
-  if (screen_on){
+  if (screen_on and screen_change_state==1){
     display.setTextSize(1.5);
     display.setTextColor(WHITE, BLACK);
     display.setCursor(0,0);
@@ -420,14 +476,16 @@ void loop() {
     display.println("%");
     display.print(temperature_water);display.println(" C");
     display.print(p_app);display.println(" VA");
-    display.print(i_inst);display.println(" A");
+    display.print(p_dispo);display.println(" W");
    
     display.print("Forcee: ");display.println(forced);
     display.display();
+    screen_change_state=0;
   }
-  else  {
+  else if (screen_change_state==1) {
     display.clearDisplay();
     display.display();
+    screen_change_state=0;
   }
   
   if (push_buttom()){
@@ -436,13 +494,15 @@ void loop() {
       else if(screen_on and forced==1){forced=0;}
 
       screen_on=1;
+      screen_change_state=1;
       time_screen_on=0;
   }
   heating_water();
   
   read_linky();
+  
   if (bitRead(statut_message,DATA_READY)){
     check_message();  
   }
-  if (millis()>last_message+delay_sent){send_data();}
+  if ((millis()>last_message+delay_sent)||send_datas==1){send_data();send_datas=0;}
 }

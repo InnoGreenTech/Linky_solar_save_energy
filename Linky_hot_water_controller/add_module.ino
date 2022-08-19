@@ -1,6 +1,6 @@
 void add_module(){
   
-      timer1_disable();
+     // timer1_disable();
       String   reception;
 
       if ( server.hasArg("ip_server") ) 
@@ -45,9 +45,9 @@ void add_module(){
 
       server.send ( 200, "text/csv", answer_add_module() );   // envoi de la page  
       
-      timer1_attachInterrupt(pwm_timer);
+     /* timer1_attachInterrupt(pwm_timer);
       timer1_write(625/2*SHARPNESS);
-      timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
+      timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);*/
 }
 
 /* file csv with information for php server */

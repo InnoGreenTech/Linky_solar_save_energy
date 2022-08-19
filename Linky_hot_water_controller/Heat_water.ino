@@ -15,28 +15,48 @@ void heating_water(){
 
   /* control temperature */
   
-  if (temperature_water>67 || alarm>0){end_signal=0;}
-  else if (forced and temperature_water <= 65){end_signal=PERIOD;}
+  if (temperature_water>67 || alarm>0){end_signal=0; p_w=0;}
+  else if (forced and temperature_water <= 65){end_signal=PERIOD; p_w=power_heating;}
   else if (!digitalRead(ENABLE_HEATING)){ 
-        if(read_done==1){
+
+        if( millis()-last_data_p_dispo<500000){
+          if(new_data_p_dispo==1){
+            if (p_dispo> power_heating/100){          
+             power_recover= power_recover+(p_dispo*100)/ power_heating;
+            }
+            else if (p_dispo < -power_heating/100){
+             power_recover= power_recover - (p_dispo*100)/ power_heating;
+            }
+            if (power_recover>100){power_recover=100;}
+            if (power_recover<0){power_recover=0;}  
+             
+            new_data_p_dispo=0;
+            end_signal=int((power_recover*PERIOD)/100); 
+            p_w= int((power_recover*power_heating)/100);
+          }
+        }
+        else  if(read_done==1){
           if(number_of_read>NUMBER_OF_READ){
             number_of_read=0;
             if (p_app == 0 ){power_recover = power_recover + STEP_RECOVER;}                          
             else {power_recover = power_recover -(( p_app*100)/power_heating);number_of_read--;}          
-            if (power_recover>100){power_recover=100;};
+            if (power_recover>100){power_recover=100;}
             if (power_recover<0){power_recover=0;}            
           }
           number_of_read++;
           read_done=0;
-          end_signal=int((power_recover*PERIOD)/100);  
+          end_signal=int((power_recover*PERIOD)/100); 
+          p_w= int((power_recover*power_heating)/100);
         }
         
         if ((millis()- last_legionel_reach)> PERIOD_LEGIONEL){
           end_signal=PERIOD;
+          p_w=power_heating;
         }
 
         if ((millis()- last_autonomie_reach)> autonomie){
           end_signal=PERIOD;
+          p_w=power_heating;
         }
 
       }

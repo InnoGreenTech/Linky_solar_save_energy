@@ -1,30 +1,38 @@
 
-void indexRoot(){
+void indexRoot(){              
 
-             String  get_information="";
 
-              timer1_attachInterrupt(pwm_timer);
-              timer1_write(625/2*SHARPNESS);
-              timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
+              
+              if ( server.hasArg("envoi")) 
+                {      
+                  send_datas=1;
+                } 
 
-              if(server.hasArg("POWER_HEATING")){
+              if(server.hasArg("POWER_HEATING")&& server.hasArg("PERIOD")){
+                timer1_disable();
+                String  get_information=""; 
+                               
                 get_information = server.arg("POWER_HEATING");
                 power_heating=get_information.toInt();               
                 int b=int(power_heating);
                 for (int a=0;a<2;a++){EEPROM.write(MEM_POWER_HEATING+a ,b);b=b>>8;} 
-                timer1_disable();
+                
+                get_information = server.arg("PERIOD");
+                period=get_information.toInt();   
+                b=int(period);
+                for (int a=0;a<2;a++){EEPROM.write(MEM_PERIOD+a ,b);b=b>>8;}
+                
                 EEPROM.commit();
                 delay (500);
                 ESP.restart();
               }
               
               
-              if ( server.hasArg("envoi")) 
-              {      
-                send_data();
-              } 
+
                server.send ( 200, "text/html", indexPage() );   // envoi de la page
-                }
+
+
+              }
   
 
 String indexPage(){
@@ -60,7 +68,9 @@ String indexPage(){
                            page +=(end_signal*100)/PERIOD;
                            page +=F(" %</td></tr><tr><td>Température:</td><td></td><td>");
                            page +=temperature_water;
-                           page +=F(" °C</td></tr><tr><td>Autonomie restante:</td><td></td><td>");
+                           page +=F(" °C</td></tr><tr><td>Puissance diponnible:</td><td></td><td>");
+                           page +=p_dispo;
+                           page +=F(" W</td></tr><tr><td>Autonomie restante:</td><td></td><td>");
                            page +=(autonomie-(millis()-last_autonomie_reach))/3600000;
                            page +=F(" Heures</td></tr><tr><td>Prochaine décontamination:</td><td></td><td>");
                            page +=(PERIOD_LEGIONEL-(millis()- last_legionel_reach))/(3600000*24);
@@ -86,10 +96,13 @@ String indexPage(){
                            page +=F(" secondes</td><td></td><td><form method='get'><input type='hidden' name='envoi' value='1'/><input type='submit' value='Envoi données'/>");                      
                            page +=F("</form></td></tr></table>");
                            page +=F("<table><tr><td>Puissance en watts du chauffe eau (redémarrage): ");
-                           page +=F("</td><td></td><td><form method='get'><input type='num' name='POWER_HEATING' id='POWER_HEATING'  value='");
+                           page +=F("<form method='get'></td><td></td><td><input type='num' name='POWER_HEATING' id='POWER_HEATING'  value='");
                            page +=power_heating;
-                           page +=F("'/><input type='submit' value='Modifier'/>");                      
-                           page +=F("</form></td></tr></table></section>");
+                           page +=F("'/><tr><td>Durée entre chaque envoi (secondes): ");
+                           page +=F("</td><td></td><td><input type='num' name='PERIOD' id='PERIOD'  value='");
+                           page +=period;
+                           page +=F("'/></td><tr><td><input type='submit' value='Modifier'/>");                      
+                           page +=F("</td></tr></form></table></section>");
                                  
                            page +=F("</div>");
                            

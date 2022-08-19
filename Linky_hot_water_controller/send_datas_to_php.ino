@@ -1,37 +1,54 @@
 void send_data(){
 
-      //timer1_disable();
+      timer1_disable();
       
       digitalWrite(PWM_PIN,0);
+      digitalWrite(LED,0); 
+
 
 
       String ip=WiFi.localIP().toString().c_str();    // Allow at the server to know the new address if it have changed
-      String data; 
+      String data;
       
       /* Création des données json */
 
       
        
-      const size_t bufferSize =JSON_OBJECT_SIZE(13);
+      const size_t bufferSize =JSON_OBJECT_SIZE(9);
       DynamicJsonDocument root(bufferSize);
 
      root["mac_adress"]=WiFi.macAddress();
      root["ip_adress"]=ip; 
 
-     root["p1"]=(total_i/index_i);    
-     root["p2"]=(total_app/index_app);
-     root["p3"]=base;    
-     root["p9"]=ptec;
-     root["p10"]=temperature_water;
-     root["p11"]=kwh;
-     
-     root["a1"]=(total_heat/index_app);
-     root["a2"]=(total_injection/index_app);
+     if (index_i>0){
+       root["I_Linky"]=(total_i/index_i);  
+       if (index_app>0){root["S_Linky"]=(total_app/index_app);}
+       root["E_Linky"]=base;    
+       // root["Periode_Linky"]=ptec;
+       root["T_Water"]=temperature_water; 
+       if (index_app>0){ root["Puissance_chauffe"]=(total_heat/index_app);}
+
+     }
+
 
       
-     serializeJson(root,data);    
+     serializeJson(root,data);   
+
+if (!EC.connected()){
+     mqtt_connection();
+    }
+    
+ if (EC.connected()){
+       
+       char tampon[255]; 
+       //Serial.println("");
+       //Serial.println(data.length());
+       data.toCharArray(tampon, data.length()+1);    
+       //Serial.println(tampon);   
+       EC.publish(topicR, tampon);
+     }
      //root.printTo(data);
-     String adresse="http://";
+ /*    String adresse="http://";
      adresse+=ip_server;
      adresse+="/InnoGreenTech/controller/json_probe.php";
      String data1= "data=";
@@ -46,7 +63,8 @@ void send_data(){
      String payload = http.getString();
      //Serial.println(httpCode);   //Print HTTP return code
      //Serial.println(payload);
-     http.end();  //Close connection 
+     http.end();  //Close connection */
+     
      index_i=0;
      index_app=0;
      total_i=0;
@@ -55,7 +73,7 @@ void send_data(){
      total_heat=0;
      last_message= millis();
      
-     /*timer1_attachInterrupt(pwm_timer);
-     timer1_write(625/2*SHARPNESS);
-     timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);*/
+     timer1_attachInterrupt(pwm_timer);
+     timer1_write(625*SHARPNESS);
+     timer1_enable(TIM_DIV256, TIM_EDGE, TIM_LOOP);
 }
